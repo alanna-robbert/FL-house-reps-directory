@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Build representatives.db (SQLite) from representatives.json.
+Build data/representatives.db (SQLite) from data/representatives.json.
 
 Run rep.py first to scrape the data, then:
-    python3 build_db.py
+    python3 python/build_db.py
 
 SQLite keeps the whole database in a single file, so there is no server
 to start. PHP opens the file directly (see representatives.php).
@@ -13,9 +13,10 @@ import json
 import sqlite3
 from pathlib import Path
 
-HERE = Path(__file__).parent
-JSON_FILE = HERE / "representatives.json"
-DB_FILE = HERE / "representatives.db"
+# Both files live in the data/ folder, next to this python/ folder
+DATA_DIR = Path(__file__).parent.parent / "data"
+JSON_FILE = DATA_DIR / "representatives.json"
+DB_FILE = DATA_DIR / "representatives.db"
 
 SCHEMA = """
 CREATE TABLE representatives (

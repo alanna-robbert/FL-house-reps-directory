@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/representatives.php';
 
-$member_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+// Live site: ?id= in the URL. Static build: build_site.php sets $member_id.
+$member_id = $member_id ?? filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$member_id) {
     header('Location: index.php');
     exit;
@@ -17,11 +18,11 @@ if (!$rep) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Not Found | Florida House</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="<?= url('css/style.css') ?>">
 </head>
 <body class="profile-page">
 <div class="profile-back">
-  <a href="index.php">&larr; All Representatives</a>
+  <a href="<?= home_url() ?>">&larr; All Representatives</a>
 </div>
 <main class="profile-container">
   <section class="profile-main">
@@ -85,19 +86,19 @@ foreach ($extra as $key => $val) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= $name ?> | Florida House</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="<?= url('css/style.css') ?>">
 </head>
 <body class="profile-page">
 
 <div class="profile-back">
-  <a href="index.php">&larr; All Representatives</a>
+  <a href="<?= home_url() ?>">&larr; All Representatives</a>
 </div>
 
 <main class="profile-container">
 
   <aside class="profile-sidebar <?= $party_cls ?>">
     <img src="<?= $photo ?>" alt="<?= $name ?>"
-         onerror="this.src='placeholder.svg'">
+         onerror="this.src='<?= url('images/placeholder.svg') ?>'">
     <div class="profile-party-badge <?= $party_cls ?>">
       <?= htmlspecialchars($rep['party']) ?>
     </div>

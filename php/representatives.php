@@ -16,9 +16,32 @@
 if (file_exists(__DIR__ . '/config.php')) {
     require_once __DIR__ . '/config.php';
 }
-defined('DB_DSN')  || define('DB_DSN', 'sqlite:' . __DIR__ . '/representatives.db');
+defined('DB_DSN')  || define('DB_DSN', 'sqlite:' . dirname(__DIR__) . '/data/representatives.db');
 defined('DB_USER') || define('DB_USER', null);
 defined('DB_PASS') || define('DB_PASS', null);
+
+/*
+ * Links. The same pages run two ways:
+ *   1. Live through PHP (php -S): pages are in php/, so the CSS is at ../css/
+ *   2. As a static website built by build_site.php into docs/ (STATIC_BUILD).
+ *      There, index.html is at the top and profiles are in reps/.
+ * $SITE_ROOT is the path from the current page back to the top of the site.
+ */
+defined('STATIC_BUILD') || define('STATIC_BUILD', false);
+$SITE_ROOT = $SITE_ROOT ?? '../';
+
+/** Path to a file at the top of the site, e.g. url('css/style.css'). */
+function url(string $path): string {
+    return $GLOBALS['SITE_ROOT'] . $path;
+}
+
+function home_url(): string {
+    return STATIC_BUILD ? url('index.html') : 'index.php';
+}
+
+function profile_url(int $member_id): string {
+    return STATIC_BUILD ? url("reps/$member_id.html") : "profile.php?id=$member_id";
+}
 
 function get_db(): PDO {
     static $conn = null;

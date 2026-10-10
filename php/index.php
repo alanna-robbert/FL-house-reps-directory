@@ -21,20 +21,30 @@ $city_facets     = facet_counts($db, 'city');
 $mil_yes = (int)$db->query("SELECT COUNT(*) FROM representatives WHERE military != '' AND is_current = 1")->fetchColumn();
 $mil_no  = $total - $mil_yes;
 
-// Recreational interests — split each row on ", " and count individual values
-$rec_counts = [];
-$rec_res = $db->query("SELECT recreational_interests FROM representatives WHERE recreational_interests != '' AND is_current = 1");
-foreach ($rec_res->fetchAll(PDO::FETCH_COLUMN) as $interests) {
+/** Split a comma-separated list into lowercase values, e.g. "Fishing, Hunting". */
+function split_list(string $list): array {
     // array_unique so one person listing "fishing" twice only counts once
-    $items = array_unique(array_filter(array_map(
+    return array_unique(array_filter(array_map(
         fn($item) => strtolower(trim($item)),
-        explode(',', $interests)
+        explode(',', $list)
     )));
-    foreach ($items as $key) {
-        $rec_counts[$key] = ($rec_counts[$key] ?? 0) + 1;
-    }
 }
-arsort($rec_counts); // highest count first
+
+/** Count each comma-separated value in a column, highest count first. */
+function split_counts(PDO $db, string $col): array {
+    $counts = [];
+    $res = $db->query("SELECT `$col` FROM representatives WHERE `$col` != '' AND is_current = 1");
+    foreach ($res->fetchAll(PDO::FETCH_COLUMN) as $list) {
+        foreach (split_list($list) as $key) {
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
+    }
+    arsort($counts);
+    return $counts;
+}
+
+$rec_counts = split_counts($db, 'recreational_interests');
+$occ_counts = split_counts($db, 'occupation');
 
 // Education — extract institution names containing "University"
 function universities(string $education): array {
@@ -66,7 +76,7 @@ $party_letters = ['republican' => 'R', 'democrat' => 'D'];
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Florida House of Representatives</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="<?= url('css/style.css') ?>">
 </head>
 <body>
 
@@ -121,11 +131,12 @@ $party_letters = ['republican' => 'R', 'democrat' => 'D'];
       $party_class  = strtolower($rep['party']);
       $photo        = htmlspecialchars($rep['photo_url']);
       $name         = htmlspecialchars($rep['full_name']);
-      $url          = 'profile.php?id=' . (int)$rep['member_id'];
+      $url          = profile_url((int)$rep['member_id']);
       $religion_val = strtolower($rep['religion'] ?? '');
       $city_val     = strtolower($rep['city'] ?? '');
       $mil_val      = !empty($rep['military']) ? 'yes' : 'no';
       $rec_val      = strtolower($rep['recreational_interests'] ?? '');
+      $occ_val      = implode(',', split_list($rep['occupation'] ?? ''));
       // Extract universities (pipe-separated so commas in names stay intact)
       $edu_val = strtolower(implode('|', universities($rep['education'] ?? '')));
       $searchable   = strtolower(implode(' ', [
@@ -142,12 +153,13 @@ $party_letters = ['republican' => 'R', 'democrat' => 'D'];
              data-religion="<?= htmlspecialchars($religion_val) ?>"
              data-military="<?= $mil_val ?>"
              data-recreational="<?= htmlspecialchars($rec_val) ?>"
+             data-occupation="<?= htmlspecialchars($occ_val) ?>"
              data-education="<?= htmlspecialchars($edu_val) ?>"
              data-search="<?= htmlspecialchars($searchable) ?>">
       <a href="<?= $url ?>">
         <div class="card-photo">
           <img src="<?= $photo ?>" alt="<?= $name ?>" loading="lazy"
-               onerror="this.src='placeholder.svg'">
+               onerror="this.src='<?= url('images/placeholder.svg') ?>'">
           <span class="party-badge <?= $party_class ?>">
             <?= $party_letters[$party_class] ?? 'NPA' ?>
           </span>
@@ -170,6 +182,7 @@ $party_letters = ['republican' => 'R', 'democrat' => 'D'];
       <div class="facet-cat active" data-facet="party"    tabindex="0">Party</div>
       <div class="facet-cat"        data-facet="religion" tabindex="0">Religion</div>
       <div class="facet-cat"        data-facet="city"     tabindex="0">City</div>
+      <div class="facet-cat"        data-facet="occupation"      tabindex="0">Occupation</div>
       <div class="facet-cat"        data-facet="military"        tabindex="0">Military Service</div>
       <div class="facet-cat"        data-facet="recreational"    tabindex="0">Recreational Interests</div>
       <div class="facet-cat"        data-facet="education"       tabindex="0">University</div>
@@ -215,6 +228,22 @@ $party_letters = ['republican' => 'R', 'democrat' => 'D'];
             <input type="checkbox" data-facet="city" value="<?= strtolower(htmlspecialchars($row['val'])) ?>">
             <span class="facet-opt-label"><?= htmlspecialchars($row['val']) ?></span>
             <span class="facet-opt-count"><?= $row['cnt'] ?></span>
+          </label>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <!-- Occupation -->
+      <div class="facet-opts" data-facet="occupation" hidden>
+        <div class="facet-search-wrap">
+          <input type="search" class="facet-inner-search" placeholder="Search occupation…" aria-label="Search occupation options">
+        </div>
+        <div class="facet-scroll">
+          <?php foreach ($occ_counts as $occupation => $cnt): ?>
+          <label class="facet-opt">
+            <input type="checkbox" data-facet="occupation" value="<?= htmlspecialchars($occupation) ?>">
+            <span class="facet-opt-label"><?= htmlspecialchars(ucwords($occupation)) ?></span>
+            <span class="facet-opt-count"><?= $cnt ?></span>
           </label>
           <?php endforeach; ?>
         </div>
@@ -282,7 +311,7 @@ $party_letters = ['republican' => 'R', 'democrat' => 'D'];
 
   const state = {
     q: '', district: '',
-    facets: { party: new Set(), religion: new Set(), city: new Set(), military: new Set(), recreational: new Set(), education: new Set() },
+    facets: { party: new Set(), religion: new Set(), city: new Set(), occupation: new Set(), military: new Set(), recreational: new Set(), education: new Set() },
   };
 
   const qInput      = document.getElementById('q');
@@ -375,7 +404,7 @@ $party_letters = ['republican' => 'R', 'democrat' => 'D'];
 
   // ── Filtering ────────────────────────────────────────────────────────
   // Multi-value facets: maps facet name → separator used in data attribute
-  const multiValueFacets = { recreational: ',', education: '|' };
+  const multiValueFacets = { recreational: ',', occupation: ',', education: '|' };
 
   function cardMatches(card) {
     const d = card.dataset;
@@ -406,7 +435,7 @@ $party_letters = ['republican' => 'R', 'democrat' => 'D'];
   }
 
   // ── Chips ────────────────────────────────────────────────────────────
-  const facetLabels = { party:'Party', religion:'Religion', city:'City', military:'Military', recreational:'Interests', education:'University' };
+  const facetLabels = { party:'Party', religion:'Religion', city:'City', occupation:'Occupation', military:'Military', recreational:'Interests', education:'University' };
 
   function renderChips() {
     chipsEl.innerHTML = '';

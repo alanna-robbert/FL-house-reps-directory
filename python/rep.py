@@ -2,7 +2,7 @@
 """
 Florida House of Representatives scraper.
 Fetches the member directory and each legislator's bio page,
-then saves all data to representatives.json.
+then saves all data to data/representatives.json.
 
 Structure discovered from live site:
   Directory : div.team-box > a[href*=details.aspx] > h5 (name), p (party/district)
@@ -19,6 +19,7 @@ import json
 import re
 import time
 import sys
+from pathlib import Path
 from urllib.parse import urljoin
 
 import requests
@@ -26,7 +27,8 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.flhouse.gov"
 DIRECTORY_URL = f"{BASE_URL}/representatives"
-OUTPUT_FILE = "representatives.json"
+# Saved in the data/ folder, next to this python/ folder
+OUTPUT_FILE = Path(__file__).parent.parent / "data" / "representatives.json"
 REQUEST_DELAY = 0.75  # seconds between requests — be polite
 
 HEADERS = {
@@ -282,4 +284,4 @@ if __name__ == "__main__":
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print(f"\nDone. {len(data)} records saved to {OUTPUT_FILE}")
+    print(f"\nDone. {len(data)} records saved to {OUTPUT_FILE.name}")
