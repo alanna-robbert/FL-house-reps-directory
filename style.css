@@ -1,0 +1,614 @@
+/* ── Reset & base ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #f4f6f9;
+  color: #1a1a2e;
+  min-height: 100vh;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ── Site header ──────────────────────────────────────────────────────── */
+.site-header {
+  background: #002868;
+  color: #fff;
+  padding: 1.25rem 2rem 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.seal {
+  height: 56px;
+  width: 56px;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
+}
+
+.site-header h1 { font-size: 1.3rem; font-weight: 700; }
+.site-header p  { font-size: .85rem; opacity: .75; margin-top: .15rem; }
+
+/* ── Ensure CSS display rules never override the hidden attribute ─────── */
+[hidden] { display: none !important; }
+
+/* ── Search / filter bar ──────────────────────────────────────────────── */
+.search-bar-wrap {
+  background: #fff;
+  border-bottom: 1px solid #e0e4ec;
+  padding: .9rem 2rem;
+  position: sticky;
+  top: 88px;        /* height of site-header */
+  z-index: 99;
+  box-shadow: 0 2px 6px rgba(0,0,0,.06);
+}
+
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: flex-end;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.search-field {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  flex: 1 1 160px;
+}
+
+.search-field--wide { flex: 2 1 240px; }
+.search-field--sm   { flex: 0 1 100px; }
+
+.search-field label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #666;
+}
+
+.search-field input,
+.search-field select {
+  padding: .45rem .7rem;
+  border: 1.5px solid #d0d5e0;
+  border-radius: 7px;
+  font-size: .88rem;
+  color: #1a1a2e;
+  background: #f8f9fc;
+  transition: border-color .2s, box-shadow .2s;
+  width: 100%;
+}
+
+.search-field input:focus,
+.search-field select:focus {
+  outline: none;
+  border-color: #002868;
+  box-shadow: 0 0 0 3px rgba(0,40,104,.12);
+  background: #fff;
+}
+
+#reset-btn {
+  padding: .46rem 1.1rem;
+  border: 1.5px solid #d0d5e0;
+  border-radius: 7px;
+  background: #f8f9fc;
+  font-size: .85rem;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  align-self: flex-end;
+  white-space: nowrap;
+}
+
+#reset-btn:hover {
+  background: #eee;
+  border-color: #bbb;
+}
+
+/* ── Filter toggle button ─────────────────────────────────────────────── */
+.facet-wrap {
+  align-self: flex-end;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+}
+
+.filter-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .46rem 1rem;
+  border: 1.5px solid #d0d5e0;
+  border-radius: 7px;
+  background: #f8f9fc;
+  font-size: .88rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+
+.filter-toggle-btn:hover,
+.filter-toggle-btn[aria-expanded="true"] {
+  border-color: #002868;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,40,104,.1);
+}
+
+.filter-badge {
+  background: #002868;
+  color: #fff;
+  border-radius: 99px;
+  font-size: .7rem;
+  font-weight: 800;
+  padding: .1rem .45rem;
+  min-width: 18px;
+  text-align: center;
+}
+
+.filter-arrow { font-size: .75rem; opacity: .6; }
+
+/* ── Facet flyout panel ───────────────────────────────────────────────── */
+.facet-panel {
+  position: fixed;
+  top: 0;   /* overridden by JS */
+  left: 0;  /* overridden by JS */
+  z-index: 9999;
+  background: #fff;
+  border: 1.5px solid #e0e4ec;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.14);
+  display: flex;
+  flex-direction: column;   /* body row on top, footer below */
+  width: 480px;
+  max-width: 96vw;
+  overflow: hidden;
+  animation: slideDown .15s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Row that holds category nav + options side-by-side */
+.facet-body {
+  display: flex;
+  flex-direction: row;
+  min-height: 240px;
+  max-height: 340px;
+}
+
+/* Left: category nav */
+.facet-cats {
+  display: flex;
+  flex-direction: column;
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid #f0f0f0;
+  padding: .5rem 0;
+  background: #fafbfc;
+}
+
+.facet-cat {
+  padding: .7rem 1.1rem;
+  font-size: .88rem;
+  font-weight: 500;
+  color: #444;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background .15s, color .15s, border-color .15s;
+  user-select: none;
+}
+
+.facet-cat:hover { background: #f0f4ff; color: #002868; }
+
+.facet-cat.active {
+  background: #f0f4ff;
+  color: #002868;
+  font-weight: 700;
+  border-left-color: #002868;
+}
+
+/* Right: options pane */
+.facet-opts-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Each option group fills the pane; only one is visible at a time */
+.facet-opts {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.facet-search-wrap {
+  padding: .6rem .8rem .3rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.facet-inner-search {
+  width: 100%;
+  padding: .35rem .6rem;
+  border: 1.5px solid #d0d5e0;
+  border-radius: 6px;
+  font-size: .82rem;
+  background: #f8f9fc;
+  outline: none;
+}
+
+.facet-inner-search:focus {
+  border-color: #002868;
+  background: #fff;
+}
+
+.facet-scroll {
+  overflow-y: auto;
+  flex: 1;
+  padding: .4rem 0;
+}
+
+.facet-opt {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem 1rem;
+  cursor: pointer;
+  transition: background .12s;
+  font-size: .88rem;
+}
+
+.facet-opt:hover { background: #f5f7ff; }
+
+.facet-opt input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #002868;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.facet-opt-label { flex: 1; color: #222; }
+
+.facet-opt-count {
+  font-size: .75rem;
+  color: #999;
+  background: #f0f0f0;
+  border-radius: 99px;
+  padding: .1rem .45rem;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* Checked state highlight */
+.facet-opt:has(input:checked) {
+  background: #eef2ff;
+}
+.facet-opt:has(input:checked) .facet-opt-label { color: #002868; font-weight: 600; }
+.facet-opt:has(input:checked) .facet-opt-count { background: #c8d4f0; }
+
+/* Footer */
+.facet-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: .6rem 1rem;
+  background: #fafbfc;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.facet-clear-all {
+  background: none;
+  border: none;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #c8102e;
+  cursor: pointer;
+  padding: .25rem .5rem;
+  border-radius: 5px;
+  transition: background .15s;
+}
+
+.facet-clear-all:hover { background: #ffeef0; }
+
+/* ── Active filter chips ──────────────────────────────────────────────── */
+.chips-row {
+  max-width: 1400px;
+  margin: .5rem auto 0;
+  padding: 0 0 .1rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  background: #e8edff;
+  color: #002868;
+  border-radius: 99px;
+  padding: .25rem .55rem .25rem .75rem;
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: .95rem;
+  line-height: 1;
+  color: #002868;
+  opacity: .6;
+  padding: 0 .1rem;
+  border-radius: 50%;
+  transition: opacity .15s, background .15s;
+}
+
+.chip-remove:hover { opacity: 1; background: rgba(0,40,104,.12); }
+
+/* ── No-results message ───────────────────────────────────────────────── */
+.no-results {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: #888;
+  font-size: 1.05rem;
+  grid-column: 1 / -1;
+}
+
+/* ── Card grid ────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1.25rem;
+  padding: 1.75rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── Individual card ──────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  transition: transform .2s, box-shadow .2s;
+  border-top: 4px solid #ccc;
+}
+
+.card.republican { border-top-color: #c8102e; }
+.card.democrat   { border-top-color: #1a6fbf; }
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.14);
+}
+
+.card a { display: block; }
+
+/* ── Card photo ───────────────────────────────────────────────────────── */
+.card-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #e8eaf0;
+  overflow: hidden;
+}
+
+.card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+  transition: transform .3s;
+}
+
+.card:hover .card-photo img { transform: scale(1.04); }
+
+.party-badge {
+  position: absolute;
+  bottom: .5rem;
+  right: .5rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .72rem;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+
+.party-badge.republican { background: #c8102e; }
+.party-badge.democrat   { background: #1a6fbf; }
+
+/* ── Card body ────────────────────────────────────────────────────────── */
+.card-body {
+  padding: .75rem .9rem;
+}
+
+.card-body h2 {
+  font-size: .88rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #1a1a2e;
+}
+
+.card-body .district {
+  font-size: .78rem;
+  font-weight: 600;
+  color: #666;
+  margin-top: .25rem;
+}
+
+.card-body .city {
+  font-size: .76rem;
+  color: #999;
+  margin-top: .1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Profile page ─────────────────────────────────────────────────────── */
+.profile-page { background: #f4f6f9; }
+
+.profile-back {
+  background: #002868;
+  padding: .85rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+
+.profile-back a {
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 600;
+  opacity: .85;
+  transition: opacity .2s;
+}
+
+.profile-back a:hover { opacity: 1; }
+
+.profile-container {
+  display: flex;
+  gap: 2.5rem;
+  max-width: 960px;
+  margin: 2.5rem auto;
+  padding: 0 1.5rem 3rem;
+  align-items: flex-start;
+}
+
+/* ── Profile sidebar ──────────────────────────────────────────────────── */
+.profile-sidebar {
+  flex: 0 0 220px;
+  text-align: center;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0,0,0,.1);
+  border-top: 5px solid #ccc;
+}
+
+.profile-sidebar.republican { border-top-color: #c8102e; }
+.profile-sidebar.democrat   { border-top-color: #1a6fbf; }
+
+.profile-sidebar img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+.profile-party-badge {
+  padding: .5rem;
+  font-size: .82rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.profile-party-badge.republican { background: #c8102e; }
+.profile-party-badge.democrat   { background: #1a6fbf; }
+
+.profile-ext-link {
+  display: block;
+  padding: .7rem 1rem;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #002868;
+  border-top: 1px solid #eee;
+  transition: background .2s;
+}
+
+.profile-ext-link:hover { background: #f0f4ff; }
+
+/* ── Profile main content ─────────────────────────────────────────────── */
+.profile-main {
+  flex: 1;
+  background: #fff;
+  border-radius: 14px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 3px 10px rgba(0,0,0,.1);
+}
+
+.profile-main h1 {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1.2;
+}
+
+.profile-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: .4rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.profile-subtitle.republican { color: #c8102e; }
+.profile-subtitle.democrat   { color: #1a6fbf; }
+
+/* ── Bio table ────────────────────────────────────────────────────────── */
+.bio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .93rem;
+}
+
+.bio-table tr + tr td,
+.bio-table tr + tr th { border-top: 1px solid #f0f0f0; }
+
+.bio-table th {
+  width: 38%;
+  padding: .65rem .5rem .65rem 0;
+  text-align: left;
+  font-weight: 600;
+  color: #555;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.bio-table td {
+  padding: .65rem 0;
+  color: #1a1a2e;
+  vertical-align: top;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 680px) {
+  .profile-container { flex-direction: column; }
+  .profile-sidebar   { flex: none; width: 100%; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .9rem; padding: 1rem; }
+  .site-header { padding: 1rem 1rem 0; }
+}
