@@ -2,7 +2,7 @@
 
 A searchable directory of the members of the Florida House of Representatives for the 2024–2026 term. You can search by name, look up a district, or filter members by party, religion, city, occupation, military service, recreational interests and university. Click any member to see their full profile.
 
-**🌐 Live site:** https://alanna-robbert.github.io/app-fl-house-reps-directory/
+**🌐 Live site:** https://alanna-robbert.github.io/FL-house-reps-directory/
 
 This is a class assignment for **JOU4364 Advanced Web Apps for Communicators** (Spring 2026) at the University of Florida.
 

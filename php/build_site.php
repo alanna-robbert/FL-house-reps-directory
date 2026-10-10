@@ -37,13 +37,15 @@ function copy_dir(string $from, string $to): void {
     }
 }
 
-// Start from an empty docs/ folder so removed representatives disappear too
+// Start from an empty docs/ folder so removed representatives disappear too.
+// Keep CNAME: GitHub Pages stores the custom domain name in it.
 if (is_dir($docs)) {
     $files = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($docs, FilesystemIterator::SKIP_DOTS),
         RecursiveIteratorIterator::CHILD_FIRST
     );
     foreach ($files as $file) {
+        if ($file->getPathname() === "$docs/CNAME") continue;
         $file->isDir() ? rmdir($file) : unlink($file);
     }
 }
