@@ -6,47 +6,59 @@ $db = get_db();
 $reps = get_all_representatives('district');
 $total = count($reps);
 
-function facet_counts(mysqli $db, string $col): array {
-    $res = $db->query("SELECT `$col` as val, COUNT(*) as cnt
+function facet_counts(PDO $db, string $col): array {
+    return $db->query("SELECT `$col` as val, COUNT(*) as cnt
                        FROM representatives
-                       WHERE `$col` != ''
+                       WHERE `$col` != '' AND is_current = 1
                        GROUP BY `$col`
-                       ORDER BY cnt DESC, val ASC");
-    return $res->fetch_all(MYSQLI_ASSOC);
+                       ORDER BY cnt DESC, val ASC")->fetchAll();
 }
 
 $party_facets    = facet_counts($db, 'party');
 $religion_facets = facet_counts($db, 'religion');
 $city_facets     = facet_counts($db, 'city');
 
-$mil_yes = (int)$db->query("SELECT COUNT(*) FROM representatives WHERE military != ''")->fetch_row()[0];
+$mil_yes = (int)$db->query("SELECT COUNT(*) FROM representatives WHERE military != '' AND is_current = 1")->fetchColumn();
 $mil_no  = $total - $mil_yes;
 
 // Recreational interests — split each row on ", " and count individual values
 $rec_counts = [];
-$rec_res = $db->query("SELECT recreational_interests FROM representatives WHERE recreational_interests != ''");
-while ($row = $rec_res->fetch_row()) {
-    foreach (explode(',', $row[0]) as $item) {
-        $item = trim($item);
-        if ($item === '') continue;
-        $key = strtolower($item);
+$rec_res = $db->query("SELECT recreational_interests FROM representatives WHERE recreational_interests != '' AND is_current = 1");
+foreach ($rec_res->fetchAll(PDO::FETCH_COLUMN) as $interests) {
+    // array_unique so one person listing "fishing" twice only counts once
+    $items = array_unique(array_filter(array_map(
+        fn($item) => strtolower(trim($item)),
+        explode(',', $interests)
+    )));
+    foreach ($items as $key) {
         $rec_counts[$key] = ($rec_counts[$key] ?? 0) + 1;
     }
 }
 arsort($rec_counts); // highest count first
 
 // Education — extract institution names containing "University"
-$uni_counts = [];
-$edu_res = $db->query("SELECT education FROM representatives WHERE education != ''");
-while ($row = $edu_res->fetch_row()) {
-    foreach (explode(';', $row[0]) as $entry) {
-        $institution = trim(explode(',', $entry)[0]);
-        if (stripos($institution, 'University') !== false) {
-            $uni_counts[$institution] = ($uni_counts[$institution] ?? 0) + 1;
+function universities(string $education): array {
+    $unis = [];
+    foreach (explode(';', $education) as $entry) {
+        $inst = trim(explode(',', $entry)[0]);
+        if (stripos($inst, 'University') !== false) {
+            $unis[] = $inst;
         }
+    }
+    // Two degrees from the same school should only count that person once
+    return array_unique($unis);
+}
+
+$uni_counts = [];
+$edu_res = $db->query("SELECT education FROM representatives WHERE education != '' AND is_current = 1");
+foreach ($edu_res->fetchAll(PDO::FETCH_COLUMN) as $education) {
+    foreach (universities($education) as $institution) {
+        $uni_counts[$institution] = ($uni_counts[$institution] ?? 0) + 1;
     }
 }
 arsort($uni_counts);
+
+$party_letters = ['republican' => 'R', 'democrat' => 'D'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -115,14 +127,7 @@ arsort($uni_counts);
       $mil_val      = !empty($rep['military']) ? 'yes' : 'no';
       $rec_val      = strtolower($rep['recreational_interests'] ?? '');
       // Extract universities (pipe-separated so commas in names stay intact)
-      $edu_unis = [];
-      foreach (explode(';', $rep['education'] ?? '') as $entry) {
-          $inst = trim(explode(',', $entry)[0]);
-          if (stripos($inst, 'University') !== false) {
-              $edu_unis[] = strtolower($inst);
-          }
-      }
-      $edu_val = implode('|', $edu_unis);
+      $edu_val = strtolower(implode('|', universities($rep['education'] ?? '')));
       $searchable   = strtolower(implode(' ', [
         $rep['full_name'], $rep['city'], $rep['occupation'],
         $rep['birthplace'], $rep['counties'], $rep['education'],
@@ -142,9 +147,9 @@ arsort($uni_counts);
       <a href="<?= $url ?>">
         <div class="card-photo">
           <img src="<?= $photo ?>" alt="<?= $name ?>" loading="lazy"
-               onerror="this.src='placeholder.png'">
+               onerror="this.src='placeholder.svg'">
           <span class="party-badge <?= $party_class ?>">
-            <?= $rep['party'] === 'Republican' ? 'R' : 'D' ?>
+            <?= $party_letters[$party_class] ?? 'NPA' ?>
           </span>
         </div>
         <div class="card-body">

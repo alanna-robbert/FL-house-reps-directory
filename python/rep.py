@@ -68,9 +68,13 @@ def parse_directory(soup: BeautifulSoup) -> list[dict]:
 
         bio_url = urljoin(BASE_URL, detail_link["href"])
 
-        # Name is in the <h5>
+        # MemberId lives in the link: details.aspx?MemberId=4864&...
+        id_m = re.search(r"MemberId=(\d+)", bio_url, re.I)
+        member_id = int(id_m.group(1)) if id_m else None
+
+        # Name is in the <h5>. Former members who died are marked "* Name".
         name_tag = detail_link.find("h5")
-        full_name = clean(name_tag.get_text()) if name_tag else ""
+        full_name = clean(name_tag.get_text()).lstrip("* ") if name_tag else ""
 
         # First <p>: "Republican — District: 5"
         paras = detail_link.find_all("p")
@@ -84,11 +88,20 @@ def parse_directory(soup: BeautifulSoup) -> list[dict]:
             party = party_m.group(1) if party_m else ""
             district = dist_m.group(1) if dist_m else ""
 
-        # Counties are in the second <p>
-        counties = clean(paras[1].get_text()) if len(paras) > 1 else ""
+        # Only current members have a <p class="rep-counties">. Former members
+        # (who resigned or died mid-term) are also listed, without counties.
+        counties_tag = detail_link.find("p", class_="rep-counties")
+        counties = clean(counties_tag.get_text()) if counties_tag else ""
+        is_current = counties_tag is not None
+
+        # Last <p> holds the term dates, e.g. "11/06/24 - 07/18/25 (Deceased)"
+        term = clean(paras[-1].get_text()) if len(paras) > 1 else ""
 
         members.append(
             {
+                "member_id": member_id,
+                "is_current": is_current,
+                "term": term,
                 "full_name": full_name,
                 "district": district,
                 "party": party,
@@ -183,6 +196,7 @@ def parse_bio(soup: BeautifulSoup) -> dict:
         "moved_to_florida": "year_moved_to_florida",
         "religious_affiliation": "religion",
         "recreational_interest": "recreational_interests",
+        "military": "military",
     }
 
     for raw_key, std_key in field_map.items():
@@ -228,13 +242,16 @@ def scrape_all() -> list[dict]:
                 "city": "", "occupation": "", "birthplace": "",
                 "age": "", "year_moved_to_florida": "", "spouse": "",
                 "children": "", "grandchildren": "", "education": "",
-                "religion": "", "recreational_interests": "",
+                "religion": "", "recreational_interests": "", "military": "",
                 "extra_bio": {},
             }
 
         # Merge: prefer bio page values; fall back to directory values
         record = {
-            "full_name": bio.get("full_name") or member["full_name"],
+            "member_id": member["member_id"],
+            "is_current": member["is_current"],
+            "term": member["term"],
+            "full_name": (bio.get("full_name") or member["full_name"]).lstrip("* "),
             "district": bio.get("district") or member["district"],
             "party": bio.get("party") or member["party"],
             "counties": member["counties"],
@@ -251,6 +268,7 @@ def scrape_all() -> list[dict]:
             "education": bio.get("education", ""),
             "religion": bio.get("religion", ""),
             "recreational_interests": bio.get("recreational_interests", ""),
+            "military": bio.get("military", ""),
             "extra_bio": bio.get("extra_bio", {}),
         }
         results.append(record)

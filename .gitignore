@@ -1,1 +1,5 @@
-representatives.php
+# Database passwords (see representatives.php)
+config.php
+
+# Python cache files
+__pycache__/

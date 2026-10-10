@@ -9,8 +9,29 @@ if (!$member_id) {
 
 $rep = get_by_member_id($member_id);
 if (!$rep) {
-    header('HTTP/1.1 404 Not Found');
-    echo '<h1>Representative not found.</h1><a href="index.php">Back</a>';
+    http_response_code(404);
+    ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Not Found | Florida House</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="profile-page">
+<div class="profile-back">
+  <a href="index.php">&larr; All Representatives</a>
+</div>
+<main class="profile-container">
+  <section class="profile-main">
+    <h1>Representative not found</h1>
+    <p>We couldn't find a representative with that ID.</p>
+  </section>
+</main>
+</body>
+</html>
+    <?php
     exit;
 }
 
@@ -20,6 +41,8 @@ $party_cls = strtolower($rep['party']);
 
 // Build bio rows — only show fields that have a value
 $bio_rows = [
+    // Only shown for people who left office mid-term
+    'Former Member — Served'  => $rep['is_current'] ? '' : $rep['term'],
     'City of Residence'       => $rep['city'],
     'Occupation'              => $rep['occupation'],
     'District'                => $rep['district'] ? 'District ' . $rep['district'] : '',
@@ -74,7 +97,7 @@ foreach ($extra as $key => $val) {
 
   <aside class="profile-sidebar <?= $party_cls ?>">
     <img src="<?= $photo ?>" alt="<?= $name ?>"
-         onerror="this.src='placeholder.png'">
+         onerror="this.src='placeholder.svg'">
     <div class="profile-party-badge <?= $party_cls ?>">
       <?= htmlspecialchars($rep['party']) ?>
     </div>
